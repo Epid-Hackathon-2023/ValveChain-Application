@@ -86,6 +86,10 @@ class ValveChainApplication {
         await this.contract.submitTransaction('createVanne', vanne_id, name, description, position_c, position_a, temp_relevee_amont, temp_relevee_aval, temp_attendue, name_groupe, groupe_localisation);
     }
 
+    async updateVanne(vanne_id, vanne_update) {
+        await this.contract.submitTransaction('updateVanne', vanne_id, vanne_update);
+    }
+
     async getVanneById(vanne_id) {
         const result = await this.contract.evaluateTransaction('getVanneById', vanne_id);
         console.log('Transaction returned (By ID): ' + this.prettyJSONString(result.toString()));
@@ -117,9 +121,9 @@ async function main() {
     try {
         await app.initialize();
 
-        await app.createVanne('1', 'ABP 116 VL', 'Réglante secours condensats ABP 302 RE', 'O', 'F', '28.9', '33.9', '30', 'M2C17', 'entre les pompes CVI 001 à 004 PO et le condenseur. (M2C17)');
-        await app.createVanne('2', 'ABP 117 VL', 'Réglante secours condensats ABP 301 RE', 'O', 'F', '28.9', '33.9', '30', 'M2C17', 'entre les pompes CVI 001 à 004 PO et le condenseur. (M2C17)');
-        await app.createVanne('3', 'ABP 118 VL', 'Soupape de sûreté condensats ABP 302 RE', 'S.O', 'I', '22.1', '31.5', '30', 'M2C17', 'entre les pompes CVI 001 à 004 PO et le condenseur. (M2C17)');
+        await app.createVanne('1', 'ABP 116 VL', 'Réglante secours condensats ABP 302 RE', '', 'F', '', '', '30', 'M2C17', 'entre les pompes CVI 001 à 004 PO et le condenseur. (M2C17)');
+        await app.createVanne('2', 'ABP 117 VL', 'Réglante secours condensats ABP 301 RE', '', 'F', '', '', '30', 'M2C17', 'entre les pompes CVI 001 à 004 PO et le condenseur. (M2C17)');
+        await app.createVanne('3', 'ABP 118 VL', 'Soupape de sûreté condensats ABP 302 RE', 'S.O', 'I', '', '', '30', 'M2C17', 'entre les pompes CVI 001 à 004 PO et le condenseur. (M2C17)');
 
         await app.getVanneById('1');
         await app.getVanneById('2');
@@ -133,6 +137,12 @@ async function main() {
         console.log('==================================');
 
         await app.getVannesByGroupName('M2C17');
+
+        console.log('==================================');
+
+        const vanne_update_data = { "temp_relevee_amont": "28.1" }
+        await app.updateVanne('1', vanne_update_data);
+        await app.getVanneById('1');
 
         console.log('==================================');
 
