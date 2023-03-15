@@ -82,8 +82,8 @@ class ValveChainApplication {
         this.contract = this.network.getContract(this.chaincodeName);
     }
 
-    async createVanne(vanne_id, name, description, position_c, position_a, temp_relevee_amont, temp_relevee_aval, temp_attendue) {
-        await this.contract.submitTransaction('createVanne', vanne_id, name, description, position_c, position_a, temp_relevee_amont, temp_relevee_aval, temp_attendue);
+    async createVanne(vanne_id, name, description, position_c, position_a, temp_relevee_amont, temp_relevee_aval, temp_attendue, name_groupe, groupe_localisation) {
+        await this.contract.submitTransaction('createVanne', vanne_id, name, description, position_c, position_a, temp_relevee_amont, temp_relevee_aval, temp_attendue, name_groupe, groupe_localisation);
     }
 
     async getVanneById(vanne_id) {
@@ -94,6 +94,11 @@ class ValveChainApplication {
     async getVanneByName(vanne_name) {
         const result = await this.contract.evaluateTransaction('getVanneByName', vanne_name);
         console.log('Transaction returned (By name): ' + this.prettyJSONString(result.toString()));
+    }
+
+    async getVannesByGroupName(groupe_name) {
+        const result = await this.contract.evaluateTransaction('getVannesByGroupName', groupe_name);
+        console.log('Transaction returned (By groupe): ' + this.prettyJSONString(result.toString()));
     }
 
 
@@ -112,12 +117,22 @@ async function main() {
     try {
         await app.initialize();
 
-        await app.createVanne('vanne1', 'Vanne 1', 'Description de la Vanne 1', '1', '2', '30', '25', '30');
-        await app.getVanneById('vanne1');
+        await app.createVanne('1', 'ABP 116 VL', 'Réglante secours condensats ABP 302 RE', 'O', 'F', '28.9', '33.9', '30', 'M2C17', 'entre les pompes CVI 001 à 004 PO et le condenseur. (M2C17)');
+        await app.createVanne('2', 'ABP 117 VL', 'Réglante secours condensats ABP 301 RE', 'O', 'F', '28.9', '33.9', '30', 'M2C17', 'entre les pompes CVI 001 à 004 PO et le condenseur. (M2C17)');
+        await app.createVanne('3', 'ABP 118 VL', 'Soupape de sûreté condensats ABP 302 RE', 'S.O', 'I', '22.1', '31.5', '30', 'M2C17', 'entre les pompes CVI 001 à 004 PO et le condenseur. (M2C17)');
+
+        await app.getVanneById('1');
+        await app.getVanneById('2');
+        await app.getVanneById('3');
 
         console.log('==================================');
 
-        await app.getVanneByName('Vanne 1');
+        await app.getVanneByName('ABP 116 VL');
+        await app.getVanneByName('ABP 118 VL');
+
+        console.log('==================================');
+
+        await app.getVannesByGroupName('M2C17');
 
         console.log('==================================');
 
