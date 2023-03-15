@@ -14,6 +14,7 @@ const { buildCAClient, registerAndEnrollUser, enrollAdmin } = require(os.homedir
 const { buildCCPOrg1, buildWallet } = require(os.homedir() + '/ValveChain-Application/test-application/AppUtil.js');
 
 
+
 // pre-requisites:
 // - fabric-sample two organization test-network setup with two peers, ordering service,
 //   and 2 certificate authorities
@@ -87,8 +88,14 @@ class ValveChainApplication {
 
     async getVanneById(vanne_id) {
         const result = await this.contract.evaluateTransaction('getVanneById', vanne_id);
-        console.log('Transaction returned: ' + this.prettyJSONString(result.toString()));
+        console.log('Transaction returned (By ID): ' + this.prettyJSONString(result.toString()));
     }
+
+    async getVanneByName(vanne_name) {
+        const result = await this.contract.evaluateTransaction('getVanneByName', vanne_name);
+        console.log('Transaction returned (By name): ' + this.prettyJSONString(result.toString()));
+    }
+
 
     async getAllVannes() {
         const allResults = await this.contract.evaluateTransaction('getAllVannes');
@@ -109,7 +116,13 @@ async function main() {
         await app.getVanneById('vanne1');
 
         console.log('==================================');
+
+        await app.getVanneByName('Vanne 1');
+
+        console.log('==================================');
+
         await app.getAllVannes();
+
     } finally {
         await app.disconnect();
     }
