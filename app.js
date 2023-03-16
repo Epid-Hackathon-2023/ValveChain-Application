@@ -1,120 +1,100 @@
+const http = require('http');
+
+const hostname = '127.0.0.1';
+const port = 8081;
+
+const ValveChainApplication = require('./fabric_application/valvechain_application.js');
+
+const express = require('express');
+const appExpress = express();
+
+appExpress.use(express.urlencoded({ extended: true }));
+
+const server = http.createServer((req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/plain');
+  res.end();
+});
+
+server.listen(port, hostname, () => {
+  console.log(`Server running at http://${hostname}:${port}/`);
+});
+
+appExpress.get('/cree_vanne', function(req, res) {
+    res.send(`
+      <html>
+        <head>
+          <title>Formulaire de Vanne</title>
+        </head>
+        <body>
+          <form action="/" method="post">
+            <div>
+              <label for="vanne_id">ID :</label>
+              <input type="text" id="vanne_id" name="vanne_id" />
+            </div>
+            <div>
+              <label for="name">Nom :</label>
+              <input type="text" id="name" name="name" />
+            </div>
+            <div>
+              <label for="description">Description :</label>
+              <input type="text" id="description" name="description" />
+            </div>
+            <div>
+              <label for="position_a">Position vanne attendue :</label>
+              <input type="text" id="position_a" name="position_a" />
+            </div>
+            <div>
+              <label for="temp_attendue">Température attendue (aval):</label>
+              <input type="text" id="temp_attendue" name="temp_attendue" />
+            </div>
+            <div>
+              <label for="name_groupe">Nom de groupe :</label>
+              <input type="text" id="name_groupe" name="name_groupe" />
+            </div>
+            <div>
+              <label for="groupe_localisation">Localisation du groupe :</label>
+              <input type="text" id="groupe_localisation" name="groupe_localisation" />
+            </div>
+            <button type="submit">Soumettre</button>
+          </form>
+        </body>
+      </html>
+    `);
+});
+
+
+appExpress.post('/cree_vanne', async (req, res) => {
+    const vanne_id = req.body.vanne_id;
+    const name = req.body.name;
+    const description = req.body.description;
+    const position_a = req.body.position_a;
+    const temp_attendue = req.body.temp_attendue;
+    const name_groupe = req.body.name_groupe;
+    const groupe_localisation = req.body.groupe_localisation;
+  
+    try {
+        const app = new ValveChainApplication();
+        await app.initialize();
+        await app.createVanne(
+            vanne_id,
+            name,
+            description,
+            "",
+            position_a,
+            "",
+            "",
+            temp_attendue,
+            name_groupe,
+            groupe_localisation
+        );
+        await app.gateway.disconnect();
+        res.send('Vanne créée avec succès !');
+    } catch (error) {
+        console.error(`Failed to submit transaction: ${error}`);
+    }
+});
 /*
- * Copyright IBM Corp. All Rights Reserved.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
-'use strict';
-
-const { Gateway, Wallets } = require('fabric-network');
-const FabricCAServices = require('fabric-ca-client');
-const path = require('path');
-const os = require("os");
-const { buildCAClient, registerAndEnrollUser, enrollAdmin } = require(os.homedir() + '/ValveChain-Application/test-application/CAUtil.js');
-const { buildCCPOrg1, buildWallet } = require(os.homedir() + '/ValveChain-Application/test-application/AppUtil.js');
-
-
-
-// pre-requisites:
-// - fabric-sample two organization test-network setup with two peers, ordering service,
-//   and 2 certificate authorities
-//         ===> from directory /fabric-samples/test-network
-//         ./network.sh up createChannel -ca
-// - Use any of the asset-transfer-basic chaincodes deployed on the channel "mychannel"
-//   with the chaincode name of "basic". The following deploy command will package,
-//   install, approve, and commit the javascript chaincode, all the actions it takes
-//   to deploy a chaincode to a channel.
-//         ===> from directory /fabric-samples/test-network
-//         ./network.sh deployCC -ccn basic -ccp ~/ValveChain-chaincode/ -ccl javascript
-// - Be sure that node.js is installed
-//         ===> from directory /ValveChain-Application
-//         node -v
-// - npm installed code dependencies
-//         ===> from directory /ValveChain-Application
-//         npm install
-// - to run this test application
-//         ===> from directory /ValveChain-Application
-//         node app.js
-
-// NOTE: If you see  kind an error like these:
-/*
-    2020-08-07T20:23:17.590Z - error: [DiscoveryService]: send[mychannel] - Channel:mychannel received discovery error:access denied
-    ******** FAILED to run the application: Error: DiscoveryService: mychannel error: access denied
-   OR
-   Failed to register user : Error: fabric-ca request register failed with errors [[ { code: 20, message: 'Authentication failure' } ]]
-   ******** FAILED to run the application: Error: Identity not found in wallet: appUser
-*/
-// Delete the /ValveChain-Application/wallet directory
-// and retry this application.
-//
-// The certificate authority must have been restarted and the saved certificates for the
-// admin and application user are not valid. Deleting the wallet store will force these to be reset
-// with the new certificate authority.
-//
-
-class ValveChainApplication {
-    constructor() {
-        this.channelName = process.env.CHANNEL_NAME || 'mychannel';
-        this.chaincodeName = process.env.CHAINCODE_NAME || 'basic';
-        this.mspOrg1 = 'Org1MSP';
-        this.walletPath = path.join(__dirname, 'wallet');
-        this.org1UserId = 'javascriptAppUser';
-    }
-
-    prettyJSONString(inputString) {
-        return JSON.stringify(JSON.parse(inputString), null, 2);
-    }
-
-    async initialize() {
-        const ccp = buildCCPOrg1();
-        const caClient = buildCAClient(FabricCAServices, ccp, 'ca.org1.example.com');
-        const wallet = await buildWallet(Wallets, this.walletPath);
-        await enrollAdmin(caClient, wallet, this.mspOrg1);
-        await registerAndEnrollUser(caClient, wallet, this.mspOrg1, this.org1UserId, 'org1.department1');
-
-        this.gateway = new Gateway();
-        await this.gateway.connect(ccp, {
-            wallet,
-            identity: this.org1UserId,
-            discovery: { enabled: true, asLocalhost: true },
-        });
-        this.network = await this.gateway.getNetwork(this.channelName);
-        this.contract = this.network.getContract(this.chaincodeName);
-    }
-
-    async createVanne(vanne_id, name, description, position_c, position_a, temp_relevee_amont, temp_relevee_aval, temp_attendue, name_groupe, groupe_localisation) {
-        await this.contract.submitTransaction('createVanne', vanne_id, name, description, position_c, position_a, temp_relevee_amont, temp_relevee_aval, temp_attendue, name_groupe, groupe_localisation);
-    }
-
-    async updateVanne(vanne_id, vanne_update) {
-        await this.contract.submitTransaction('updateVanne', vanne_id, vanne_update);
-    }
-
-    async getVanneById(vanne_id) {
-        const result = await this.contract.evaluateTransaction('getVanneById', vanne_id);
-        console.log('Transaction returned (By ID): ' + this.prettyJSONString(result.toString()));
-    }
-
-    async getVanneByName(vanne_name) {
-        const result = await this.contract.evaluateTransaction('getVanneByName', vanne_name);
-        console.log('Transaction returned (By name): ' + this.prettyJSONString(result.toString()));
-    }
-
-    async getVannesByGroupName(groupe_name) {
-        const result = await this.contract.evaluateTransaction('getVannesByGroupName', groupe_name);
-        console.log('Transaction returned (By groupe): ' + this.prettyJSONString(result.toString()));
-    }
-
-
-    async getAllVannes() {
-        const allResults = await this.contract.evaluateTransaction('getAllVannes');
-        console.log('All vannes: ' + this.prettyJSONString(allResults.toString()));
-    }
-
-    async disconnect() {
-        await this.gateway.disconnect();
-    }
-}
 
 async function main() {
     const app = new ValveChainApplication();
@@ -153,4 +133,4 @@ async function main() {
     }
 }
 
-main();
+main();*/
